@@ -405,7 +405,7 @@ module Make (Th : Theory.S) : Sat_solver_sig.S = struct
            | F.Lemma {F.name; loc} ->
              Profiling.conflicting_instance name loc
            | _ -> ()
-        )(Ex.formulas_of exp)
+        )(Ex.get_formulas_of exp)
 
   let do_case_split env origin =
     if Options.case_split_policy () == origin then
@@ -537,9 +537,10 @@ module Make (Th : Theory.S) : Sat_solver_sig.S = struct
 
   let pred_def env f name loc =
     Debug.pred_def f;
+    let dep = Ex.singleton (Ex.Dep (Ex.Name name)) in
     let t = Term.make (Symbols.name name) [] Ty.Tbool in
     if not (Term.Set.mem t (F.ground_terms_rec f)) then
-      {env with inst = Inst.add_predicate env.inst (mk_gf f name true false)}
+      {env with inst = Inst.add_predicate env.inst (mk_gf f name true false) dep}
     else
       begin
         let a_t = A.LT.mk_pred t false in
@@ -555,10 +556,10 @@ module Make (Th : Theory.S) : Sat_solver_sig.S = struct
     match F.view f with
     | F.Literal _ when proof () ->
       if not (Ex.mem (Ex.Bj f) dep) then
-        Ex.union (Ex.singleton (Ex.Dep f)) dep
+        Ex.union (Ex.singleton (Ex.Dep (Ex.Form f))) dep
       else dep
     | F.Clause _ when proof () ->
-      Ex.union (Ex.singleton (Ex.Dep f)) dep
+      Ex.union (Ex.singleton (Ex.Dep (Ex.Form f))) dep
     | _ -> dep
 
 
@@ -1387,7 +1388,9 @@ module Make (Th : Theory.S) : Sat_solver_sig.S = struct
     | Util.Timeout when switch_to_model_gen env -> do_switch_to_model_gen env
 
   let assume env fg =
-    try assume env [fg,Ex.empty]
+    fprintf fmt "assume %s@." fg.F.origin_name;
+    let dep = Ex.singleton (Ex.Dep (Ex.Name fg.F.origin_name)) in
+    try assume env [fg, dep]
     with
     | IUnsat (d, classes) ->
       terminated_normally := true;
@@ -1467,8 +1470,9 @@ module Make (Th : Theory.S) : Sat_solver_sig.S = struct
   let retrieve_used_context env dep =
     (* TODO: remove redundancies because of theories axioms *)
     let l1, l2 = Inst.retrieve_used_context env.inst dep in
-    let r1, r2 = Th.retrieve_used_context env.tbox dep in
-    List.rev_append l1 r1, List.rev_append l2 r2
+    (*let r1, r2 = Th.retrieve_used_context env.tbox dep in*)
+    l1, l2(*
+    List.rev_append l1 r1, List.rev_append l2 r2*)
 
   let assume_th_elt env th_elt =
     {env with tbox = Th.assume_th_elt env.tbox th_elt}

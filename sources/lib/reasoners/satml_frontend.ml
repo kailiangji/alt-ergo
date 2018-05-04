@@ -430,8 +430,9 @@ module Make (Th : Theory.S) : Sat_solver_sig.S = struct
   let pred_def env f name loc =
     Debug.pred_def f;
     let t = Term.make (Symbols.name name) [] Ty.Tbool in
+    let dep = Ex.singleton (Ex.Dep (Ex.Name name)) in
     if not (Term.Set.mem t (F.ground_terms_rec f)) then
-      {env with inst = Inst.add_predicate env.inst (mk_gf f)}
+      {env with inst = Inst.add_predicate env.inst (mk_gf f) dep}
     else
       begin
         let a_t = A.mk_pred t false in

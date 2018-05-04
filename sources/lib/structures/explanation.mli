@@ -28,11 +28,13 @@
 
 type t
 
+type dep = Form of Formula.t | Name of string
+                                         
 type exp =
   | Literal of Satml_types.Atom.atom
   | Fresh of int
   | Bj of Formula.t
-  | Dep of Formula.t
+  | Dep of dep
 
 val empty : t
 
@@ -62,7 +64,9 @@ val print : Format.formatter -> t -> unit
 
 val print_proof : Format.formatter -> t -> unit
 
-val formulas_of : t -> Formula.Set.t
+val dep_formulas_of : t -> dep list
+
+val get_formulas_of : t -> Formula.Set.t
 
 val bj_formulas_of : t -> Formula.Set.t
 

@@ -31,11 +31,21 @@ open Options
 
 module F = Formula
 
+type dep = Form of Formula.t | Name of string
+
 type exp =
   | Literal of Satml_types.Atom.atom
   | Fresh of int
   | Bj of F.t
-  | Dep of F.t
+  | Dep of dep
+
+
+let compare_dep dep1 dep2 =
+  match dep1, dep2 with 
+  | Form f0, Form f1 ->  Formula.compare f0 f1
+  | Name s0, Name s1 -> String.compare s0 s1
+  | Form f, Name s -> -1
+  | Name s, Form f -> 1
 
 module S =
   Set.Make
@@ -44,7 +54,7 @@ module S =
       let compare a b = match a,b with
 	| Fresh i1, Fresh i2 -> i1 - i2
 	| Literal a  , Literal b   -> Satml_types.Atom.cmp_atom a b
-        | Dep e1  , Dep e2   -> Formula.compare e1 e2
+        | Dep e1  , Dep e2   -> compare_dep e1 e2
         | Bj e1   , Bj e2    -> Formula.compare e1 e2
 
 	| Literal _, _ -> -1
@@ -100,7 +110,8 @@ let print fmt ex =
     S.iter (function
       | Literal a -> fprintf fmt "{Literal:%a}, " Satml_types.Atom.pr_atom a
       | Fresh i -> Format.fprintf fmt "{Fresh:%i}" i;
-      | Dep f -> Format.fprintf fmt "{Dep:%a}" Formula.print f
+      | Dep (Form f) -> Format.fprintf fmt "{Dep of Form :%a}" Formula.print f
+      | Dep (Name s) -> Format.fprintf fmt "{Dep of Name :%s}" s
       | Bj f -> Format.fprintf fmt "{BJ:%a}" Formula.print f
     ) ex;
     fprintf fmt "}"
@@ -109,18 +120,27 @@ let print fmt ex =
 let print_proof fmt s =
   S.iter
     (fun e -> match e with
-      | Dep f -> Format.fprintf fmt "  %a@." F.print f
+      | Dep (Form f) -> Format.fprintf fmt "  %a@." F.print f
+      | Dep (Name s) -> Format.fprintf fmt "  %s@." s
       | Bj f -> assert false (* XXX or same as Dep ? *)
       | Fresh i -> assert false
       | Literal a -> assert false
     ) s
 
-let formulas_of s =
+let dep_formulas_of s =
   S.fold (fun e acc ->
     match e with
-      | Dep f | Bj f -> F.Set.add f acc
-      | Fresh _ -> acc
-      | Literal a -> assert false (*TODO*)
+    | Dep d -> d :: acc
+    | _ -> assert false (*TODO*)
+  ) s []
+
+let get_formulas_of s =
+  S.fold (fun e acc ->
+    match e with
+    | Dep (Form f) | Bj f -> F.Set.add f acc
+    | Dep (Name s) -> acc
+    | Fresh _ -> acc
+    | Literal a -> assert false (*TODO*)
   ) s F.Set.empty
 
 let bj_formulas_of s =
@@ -146,7 +166,7 @@ let rec literals_of_acc lit fs f acc = match F.view f with
     literals_of_acc true fs f1 acc
 
 let literals_of ex =
-  let fs  = formulas_of ex in
+  let fs  = get_formulas_of ex in
   F.Set.fold (literals_of_acc true fs) fs []
 
 module MI = Map.Make (struct type t = int let compare = compare end)

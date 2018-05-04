@@ -61,7 +61,7 @@ module type S = sig
 
   (* returns used axioms/predicates * unused axioms/predicates *)
   val retrieve_used_context :
-    t -> Explanation.t -> Formula.t list * Formula.t list
+    t -> Explanation.t -> string list * string list
 
 end
 

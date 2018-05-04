@@ -70,7 +70,7 @@ module Make(SAT : Sat_solver_sig.S) : S with type sat_env = SAT.t = struct
         Explanation.print_proof dep;
 
     try
-      let pb = Formula.Set.elements (Explanation.formulas_of dep) in
+      let pb = Formula.Set.elements (Explanation.get_formulas_of dep) in
       let env =
         List.fold_left
           (fun env f ->
@@ -118,11 +118,11 @@ module Make(SAT : Sat_solver_sig.S) : S with type sat_env = SAT.t = struct
       let used, unused = SAT.retrieve_used_context env dep in
       let f = Options.get_used_context_file () in
       let cout = open_out f in
-      List.iter (fun f ->
-        match Formula.view f with
-        | Formula.Lemma {Formula.name=name} ->
+      List.iter (fun name ->
+          (*match Formula.view f with
+        | Formula.Lemma {Formula.name=name} ->*)
           output_string cout (sprintf "%s\n" name)
-        | _ -> assert false
+        (*        | _ -> assert false*)
       ) used;
       close_out cout
 

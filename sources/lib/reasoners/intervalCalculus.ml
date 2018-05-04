@@ -2132,7 +2132,7 @@ module Make
                         if not (Options.proof() || Options.profiling())
                         then
                           dep
-                        else Ex.union dep (Ex.singleton (Ex.Dep lorig))
+                        else Ex.union dep (Ex.singleton (Ex.Dep (Ex.Form lorig)))
                       in
 		      env, (hyp, p, dep) :: acc
                     end
@@ -2252,7 +2252,7 @@ module Make
       | _ -> t
 
     let retrieve_used_context {th_axioms} dep =
-      let deps = Ex.formulas_of dep in
+      let deps = Ex.get_formulas_of dep in
       let used, unused =
         Formula.Set.fold
           (fun f ((used, assumed) as acc) ->
